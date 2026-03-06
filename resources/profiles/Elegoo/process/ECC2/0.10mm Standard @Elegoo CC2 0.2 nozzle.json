@@ -10,6 +10,7 @@
 	"min_width_top_surface": "50%",
     "elefant_foot_compensation": "0.15",
     "enable_prime_tower": "1",
+    "reduce_infill_retraction": "0",
     "compatible_printers": [
         "Elegoo Centauri Carbon 2 0.2 nozzle"
     ]

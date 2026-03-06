@@ -1742,7 +1742,8 @@ void GCodeProcessor::register_commands()
         {"VM104", [this](const GCodeReader::GCodeLine& line) { process_VM104(line); }},
         {"VM109", [this](const GCodeReader::GCodeLine& line) { process_VM109(line); }},
         {"M622", [this](const GCodeReader::GCodeLine& line) { process_M622(line);}},
-        {"M623", [this](const GCodeReader::GCodeLine& line) { process_M623(line);}}
+        {"M623", [this](const GCodeReader::GCodeLine& line) { process_M623(line);}},
+        {"M6211", [this](const GCodeReader::GCodeLine& line) { process_M6211(line);}}
     };
 
     std::unordered_set<std::string>early_quit_commands = {
@@ -5237,6 +5238,88 @@ void GCodeProcessor::process_M623(const GCodeReader::GCodeLine& line)
 {
     if(m_measure_g29_time)
         m_measure_g29_time = false;
+}
+
+// M6211 is the Elegoo CC2 custom filament-change command.
+// Syntax: M6211 T<extruder> L<flush_length_mm> [M<old_feedrate>] [N<new_feedrate>]
+//                           [Q<old_temp>] [R<max_temp>] [S<new_temp>]
+// Also used at print start: M6211 A1 L<length> T<extruder> Q<temp> R<temp> S<new_temp>
+//
+// This handler accounts for the flush time (via machine_tool_change_time) and
+// updates flush-per-filament statistics.  The actual extruder switch is performed
+// by the T<extruder> command that the slicer appends automatically after this macro.
+void GCodeProcessor::process_M6211(const GCodeReader::GCodeLine& line)
+{
+    // T parameter: target extruder / filament index
+    float target_extruder = -1.0f;
+    if (!line.has_value('T', target_extruder) || target_extruder < 0)
+        return;
+    const int new_filament_id = static_cast<int>(std::round(target_extruder));
+
+    // S parameter: new filament temperature — update tracking array
+    float new_filament_temp = 0.0f;
+    if (line.has_value('S', new_filament_temp)) {
+        if (static_cast<size_t>(new_filament_id) < m_extruder_temps.size())
+            m_extruder_temps[static_cast<size_t>(new_filament_id)] = new_filament_temp;
+    }
+
+    // L parameter: total flush length in mm filament.  Required for statistics.
+    float length = 0.0f;
+    if (!line.has_value('L', length) || length <= 0.0f)
+        return;
+
+    // Filament cross-section of the *target* filament
+    const float filament_diameter = (static_cast<size_t>(new_filament_id) < m_result.filament_diameters.size())
+        ? m_result.filament_diameters[new_filament_id]
+        : m_result.filament_diameters.back();
+    const float filament_radius             = 0.5f * filament_diameter;
+    const float area_filament_cross_section = static_cast<float>(M_PI) * sqr(filament_radius);
+    const float volume_flushed              = area_filament_cross_section * length;
+
+    // M / N parameters: old / new extrusion feedrates (mm/s).
+    // Use them to compute a realistic flush-time estimate.
+    float old_feedrate = 0.0f;
+    float new_feedrate = 0.0f;
+    if (line.has_value('M', old_feedrate) && line.has_value('N', new_feedrate)) {
+        const int   curr_extruder_id  = get_extruder_id(false);
+        const float remaining_volume  = (curr_extruder_id >= 0 &&
+                                         static_cast<size_t>(curr_extruder_id) < m_nozzle_volume.size())
+                                            ? m_nozzle_volume[curr_extruder_id]
+                                            : 0.0f;
+
+        const float old_vol   = std::min(remaining_volume, volume_flushed);
+        const float new_vol   = volume_flushed - old_vol;
+
+        float total_time = 0.0f;
+        if (old_feedrate > 0.0f && old_vol > 0.0f)
+            total_time += (old_vol / area_filament_cross_section) / old_feedrate * 60.0f;
+        if (new_feedrate > 0.0f && new_vol > 0.0f)
+            total_time += (new_vol / area_filament_cross_section) / new_feedrate * 60.0f;
+
+        if (total_time > 0.0f)
+            m_time_processor.machine_tool_change_time = total_time;
+    }
+
+    // Update flush-per-filament statistics.
+    // The flush is performed inside the printer firmware: the slicer never emits
+    // explicit G1 E moves for it, so we must account for it here.
+    const int curr_filament_id = get_filament_id(false);
+    if (curr_filament_id < 0 || curr_filament_id == new_filament_id)
+        return; // first print or same filament — nothing to record
+
+    const int   curr_extruder_id = get_extruder_id(false);
+    const float remaining_volume = (curr_extruder_id >= 0 &&
+                                    static_cast<size_t>(curr_extruder_id) < m_nozzle_volume.size())
+                                       ? m_nozzle_volume[curr_extruder_id]
+                                       : 0.0f;
+
+    const float old_filament_flush = std::min(remaining_volume, volume_flushed);
+    if (old_filament_flush > 0.0f)
+        m_used_filaments.update_flush_per_filament(static_cast<size_t>(curr_filament_id), old_filament_flush);
+
+    const float new_filament_flush = volume_flushed - old_filament_flush;
+    if (new_filament_flush > 0.0f)
+        m_used_filaments.update_flush_per_filament(static_cast<size_t>(new_filament_id), new_filament_flush);
 }
 
 

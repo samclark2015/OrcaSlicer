@@ -1054,6 +1054,7 @@ class Print;
 
         void process_M622(const GCodeReader::GCodeLine &line);
         void process_M623(const GCodeReader::GCodeLine &line);
+        void process_M6211(const GCodeReader::GCodeLine &line);
 
         void process_filament_change(int id);
 

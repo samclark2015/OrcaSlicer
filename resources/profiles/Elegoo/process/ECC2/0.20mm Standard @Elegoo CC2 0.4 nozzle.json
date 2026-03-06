@@ -30,5 +30,6 @@
   "top_surface_acceleration": "5000",
   "tree_support_branch_distance_organic": "2",
   "tree_support_tip_diameter": "0.8",
-  "wall_sequence": "inner-outer-inner wall"
+  "wall_sequence": "inner wall/outer wall",
+  "reduce_infill_retraction": "0"
 }
