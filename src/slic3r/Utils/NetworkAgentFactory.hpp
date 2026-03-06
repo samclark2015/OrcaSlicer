@@ -23,8 +23,9 @@ namespace Slic3r {
  */
 enum class CloudAgentProvider { Orca, BBL };
 
-static constexpr char ORCA_PRINTER_AGENT_ID[] = "orca";
-static constexpr char BBL_PRINTER_AGENT_ID[] = "bbl";
+static constexpr char ORCA_PRINTER_AGENT_ID[]   = "orca";
+static constexpr char BBL_PRINTER_AGENT_ID[]    = "bbl";
+static constexpr char ELEGOO_PRINTER_AGENT_ID[] = "elegoo";
 
 // Factory function type for creating printer agents
 using PrinterAgentFactory =

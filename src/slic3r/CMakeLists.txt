@@ -91,6 +91,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ConfigWizard_private.hpp
     GUI/ConnectPrinter.cpp
     GUI/ConnectPrinter.hpp
+    GUI/ElegooPrinterDialog.cpp
+    GUI/ElegooPrinterDialog.hpp
     GUI/CreatePresetsDialog.cpp
     GUI/CreatePresetsDialog.hpp
     GUI/DailyTips.cpp
@@ -570,6 +572,10 @@ set(SLIC3R_GUI_SOURCES
     Utils/Duet.hpp
     Utils/ElegooLink.cpp
     Utils/ElegooLink.hpp
+    Utils/ElegooNetworkPlugin.cpp
+    Utils/ElegooNetworkPlugin.hpp
+    Utils/ElegooPrinterAgent.cpp
+    Utils/ElegooPrinterAgent.hpp
     Utils/EmbossStyleManager.cpp
     Utils/EmbossStyleManager.hpp
     Utils/ESP3D.cpp
