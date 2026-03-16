@@ -1,0 +1,61 @@
+{
+	"00.00.00.00": {
+		"display_name": "Elegoo Centauri Carbon 2",
+		"print": {
+			"ipcam": {
+				"resolution_supported": [ "720p" ],
+				"liveview": {
+					"local": "local"
+				}
+			},
+			"nozzle_temp_range": [ 0, 300 ],
+			"support_motor_noise_cali": false,
+			"support_tunnel_mqtt": false,
+			"support_mqtt_alive": false,
+			"support_command_ams_switch": false,
+			"support_cloud_print_only": false,
+			"support_1080dpi": false,
+			"support_prompt_sound": false,
+			"support_ams_humidity": false,
+			"support_auto_recovery_step_loss": false,
+			"support_bed_leveling": 0,
+			"support_update_remain": false,
+			"support_timelapse": false,
+			"support_filament_backup": false,
+			"support_chamber_fan": false,
+			"support_aux_fan": false,
+			"support_send_to_sd": false,
+			"support_print_all": false,
+			"support_print_without_sd": false,
+			"support_flow_calibration": false,
+			"support_auto_flow_calibration": false,
+			"support_build_plate_marker_detect": false,
+			"support_lidar_calibration": false,
+			"support_ai_monitoring": false,
+			"support_first_layer_inspect": false,
+			"support_chamber": false,
+			"support_chamber_temp_edit": false,
+			"support_extrusion_cali": false,
+			"support_user_preset": false,
+			"bed_temperature_limit": 100,
+			"support_ams_ext_mix_print": false
+		},
+		"model_id": "Centauri Carbon 2",
+		"support_wrapping_detection": false,
+		"auto_pa_cali_thumbnail_image": "",
+		"compatible_machine": [],
+		"auto_cali_not_support_filaments": [],
+		"printer_type": "Centauri Carbon 2",
+		"ftp_folder": "sdcard/",
+		"printer_thumbnail_image": "",
+		"printer_connect_help_image": "",
+		"printer_use_ams_image": "",
+		"printer_ext_image": [],
+		"use_ams_type": "none",
+		"printer_arch": "core_xy",
+		"printer_series": "series_cc2",
+		"has_cali_line": false,
+		"printer_is_enclosed": false,
+		"enable_set_nozzle_info": false
+	}
+}

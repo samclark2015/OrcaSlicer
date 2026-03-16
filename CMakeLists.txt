@@ -9,6 +9,8 @@ if ( (MSVC OR WIN32) AND (${CMAKE_VERSION} VERSION_LESS "3.5") )
     message(FATAL_ERROR "CMake current version ${CMAKE_VERSION} is too old. Minimum required is 3.5.")
 endif()
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+
 # The following line used to be in tests/CMakeLists.txt
 # Having it there causes rebuilds of all targets on any CMakeLists.txt change under tests/
 # It has no effect on how code is compiled or linked.
@@ -629,6 +631,10 @@ find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Freetype REQUIRED)
 
+# Paho MQTT library for CC2 printer support
+find_package(eclipse-paho-mqtt-c REQUIRED)
+find_package(PahoMqttCpp REQUIRED)
+
 
 add_library(libcurl INTERFACE)
 target_link_libraries(libcurl INTERFACE CURL::libcurl)
@@ -663,6 +669,14 @@ if (SLIC3R_STATIC AND NOT SLIC3R_STATIC_EXCLUDE_CURL)
         target_link_libraries(libcurl INTERFACE ${OPENSSL_LIBRARIES})
     endif()
 endif()
+
+# Paho MQTT interface library for CC2 printer support
+add_library(libpaho INTERFACE)
+# Link the C++ wrapper which automatically pulls in the C library with SSL support
+target_link_libraries(libpaho INTERFACE
+    PahoMqttCpp::paho-mqttpp3-static
+    eclipse-paho-mqtt-c::paho-mqtt3as-static
+)
 
 ## OPTIONAL packages
 

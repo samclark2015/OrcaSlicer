@@ -549,6 +549,28 @@ bool PresetBundle::use_bbl_network()
     return use_bbl_network;
 }
 
+bool PresetBundle::use_network_agent()
+{
+    // Check if we should use the NetworkAgent system instead of legacy PrintHost
+    // This happens when:
+    // 1. BBL network is enabled (BBL printers), OR
+    // 2. printer_agent field is set (Qidi, Moonraker, CC2, etc.)
+    
+    if (use_bbl_network()) {
+        return true;
+    }
+    
+    const auto cfg = printers.get_edited_preset().config;
+    if (cfg.has("printer_agent")) {
+        const std::string& agent = cfg.opt_string("printer_agent");
+        // If printer_agent is set and non-empty, use NetworkAgent system
+        return !agent.empty();
+    }
+    
+    return false;
+}
+
+
 bool PresetBundle::use_bbl_device_tab() {
     if (!is_bbl_vendor()) {
         return false;

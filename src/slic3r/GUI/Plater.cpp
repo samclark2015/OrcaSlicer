@@ -2386,8 +2386,8 @@ void Sidebar::update_all_preset_comboboxes()
     auto p_mainframe = wxGetApp().mainframe;
     auto cfg = preset_bundle.printers.get_edited_preset().config;
 
-    if (preset_bundle.use_bbl_network()) {
-        //only show connection button for not-BBL printer
+    if (preset_bundle.use_network_agent()) {
+        //only show connection button for not-network-agent printer
         //p->btn_connect_printer->Hide();
         p->m_printer_connect->Hide();
         //only show sync-ams button for BBL printer
@@ -2574,7 +2574,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
 
         bool is_dual_extruder = nozzle_diameter->size() == 2;
-        p->layout_printer(preset_bundle.use_bbl_network(), isBBL && is_dual_extruder);
+        p->layout_printer(preset_bundle.use_network_agent(), isBBL && is_dual_extruder);
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto update_extruder_diameter = [&diameters, &diameter, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
@@ -9839,8 +9839,8 @@ void Plater::priv::on_action_print_plate(SimpleEvent&)
     }
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
-    if (preset_bundle.use_bbl_network()) {
-        // BBS
+    if (preset_bundle.use_network_agent()) {
+        // BBS and other NetworkAgent-based printers (CC2, Moonraker, etc.)
         if (!m_select_machine_dlg)
             m_select_machine_dlg = new SelectMachineDialog(q);
         m_select_machine_dlg->set_print_type(PrintFromType::FROM_NORMAL);
@@ -9940,8 +9940,8 @@ void Plater::priv::on_action_print_all(SimpleEvent&)
     }
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
-    if (preset_bundle.use_bbl_network()) {
-        // BBS
+    if (preset_bundle.use_network_agent()) {
+        // BBS and other NetworkAgent-based printers (CC2, Moonraker, etc.)
         if (!m_select_machine_dlg)
             m_select_machine_dlg = new SelectMachineDialog(q);
         m_select_machine_dlg->set_print_type(PrintFromType::FROM_NORMAL);

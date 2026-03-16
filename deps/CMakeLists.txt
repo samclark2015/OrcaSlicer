@@ -358,6 +358,10 @@ if (NOT OPENSSL_FOUND OR NOT CURL_FOUND)
     set(CURL_PKG dep_CURL)
 endif ()
 
+# Paho MQTT library for CC2 printer support
+include(PahoMQTT/PahoMQTT.cmake)
+set(PAHO_PKG dep_PahoMQTT_CPP)
+
 set(JPEG_PKG "")
 if (NOT JPEG_FOUND)
     include(JPEG/JPEG.cmake)
@@ -399,6 +403,7 @@ set(_dep_list
     dep_TBB
     ${OPENSSL_PKG}
     ${CURL_PKG}
+    ${PAHO_PKG}
     ${WXWIDGETS_PKG}
     dep_Cereal
     dep_Draco

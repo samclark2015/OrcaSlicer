@@ -1,7 +1,7 @@
 {
   "type": "machine_model",
   "name": "Elegoo Centauri Carbon 2",
-  "model_id": "Elegoo-CC2",
+  "model_id": "Centauri Carbon 2",
   "nozzle_diameter": "0.4;0.2;0.6;0.8",
   "machine_tech": "FFF",
   "family": "Elegoo",

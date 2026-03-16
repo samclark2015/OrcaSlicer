@@ -149,6 +149,8 @@ public:
 
     // Whether using bbl network for print upload
     bool use_bbl_network();
+    // Whether using NetworkAgent system (new printer_agent field)
+    bool use_network_agent();
     // Whether using bbl's device tab
     bool use_bbl_device_tab();
 
