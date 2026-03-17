@@ -2907,6 +2907,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 }
 
                 if (jj.contains("support_bed_leveling")) {
+                    BOOST_LOG_TRIVIAL(info) << "support_bed_leveling found in json, value: " << jj["support_bed_leveling"].dump();
                     if (jj["support_bed_leveling"].is_number_integer()) {
                         is_support_bed_leveling = jj["support_bed_leveling"].get<int>();
                     }
@@ -2967,6 +2968,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 }
 
                 if (jj.contains("support_timelapse")) {
+                    BOOST_LOG_TRIVIAL(info) << "support_timelapse found in json, value: " << jj["support_timelapse"].dump();
                     if (jj["support_timelapse"].is_boolean()) {
                         is_support_timelapse = jj["support_timelapse"].get<bool>();
                     }
@@ -4343,7 +4345,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 void MachineObject::set_ctt_dlg( wxString text){
     if (!m_set_ctt_dlg) {
         m_set_ctt_dlg = true;
-        auto print_error_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"), GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle 
+        auto print_error_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"), GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle
         print_error_dlg->update_text(text);
         print_error_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
             if (!e.IsShown()) {

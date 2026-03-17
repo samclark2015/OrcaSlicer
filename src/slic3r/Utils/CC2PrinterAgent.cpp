@@ -523,7 +523,7 @@ void CC2PrinterAgent::cc2_handle_command_response(const nlohmann::json& payload)
 std::string CC2PrinterAgent::cc2_generate_upload_filename(const PrintParams& params)
 {
     std::string filename;
-    
+
     // Try to use preset_name first (format: "ProjectName_plate_N")
     if (!params.preset_name.empty()) {
         filename = params.preset_name;
@@ -539,7 +539,7 @@ std::string CC2PrinterAgent::cc2_generate_upload_filename(const PrintParams& par
     else {
         filename = "print";
     }
-    
+
     // Sanitize filename: replace invalid characters with underscores
     const char* invalid_chars = "<>:\"/\\|?*";
     for (char& c : filename) {
@@ -547,18 +547,18 @@ std::string CC2PrinterAgent::cc2_generate_upload_filename(const PrintParams& par
             c = '_';
         }
     }
-    
+
     // Replace multiple underscores with single underscore
     size_t pos = 0;
     while ((pos = filename.find("__", pos)) != std::string::npos) {
         filename.replace(pos, 2, "_");
     }
-    
+
     // Ensure .gcode extension
     if (!boost::algorithm::ends_with(filename, ".gcode")) {
         filename += ".gcode";
     }
-    
+
     BOOST_LOG_TRIVIAL(info) << "CC2: Generated upload filename: " << filename;
     return filename;
 }
@@ -702,7 +702,11 @@ void CC2PrinterAgent::cc2_handle_status_update(const nlohmann::json& message)
     nlohmann::json wrapped_status;
     wrapped_status["print"]["command"] = "push_status";
     wrapped_status["print"]["msg"] = 0;  // Full message (not diff)
+
+    // Capabilities
     wrapped_status["print"]["sdcard"] = true;
+    wrapped_status["print"]["support_timelapse"] = true;
+    wrapped_status["print"]["support_bed_leveling"] = 1; // 2 = auto/on/off, 1 = on/off, 0 = none
 
     // Copy all fields from cached status to print section
     for (auto it = m_cached_status.begin(); it != m_cached_status.end(); ++it) {
@@ -936,7 +940,12 @@ int CC2PrinterAgent::connect_printer(std::string dev_id, std::string dev_ip,
         nlohmann::json wrapped_status;
         wrapped_status["print"]["command"] = "push_status";
         wrapped_status["print"]["msg"] = 0;  // Full message
+
+        // Capabilities
         wrapped_status["print"]["sdcard"] = true;
+        wrapped_status["print"]["support_timelapse"] = true;
+        wrapped_status["print"]["support_bed_leveling"] = 1; // 2 = auto/on/off, 1 = on/off, 0 = none
+
         for (auto it = initial_status.begin(); it != initial_status.end(); ++it) {
             wrapped_status["print"][it.key()] = it.value();
         }
@@ -1289,17 +1298,46 @@ int CC2PrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn,
 {
     BOOST_LOG_TRIVIAL(info) << "CC2: Starting print: " << params.dev_id << ", file: " << params.filename;
 
+    auto slot_map = nlohmann::json::array();
+    if(params.task_use_ams && !params.ams_mapping.empty()) {
+        try {
+            // Parse ams_mapping JSON string
+            // Format: [{"ams_id": 0, "slot_id": 1}, {"ams_id": 0, "slot_id": 2}, ...]
+            nlohmann::json ams_mapping = nlohmann::json::parse(params.ams_mapping);
 
+            // Convert to CC2 slot_map format
+            // Format: [{"slot": 1, "canvas_id": 0, "tray_id": 1}, {"slot": 2, "canvas_id": 0, "tray_id": 2}, ...]
+            int slot_index = 1;  // Slot numbers start at 1
+            for (const auto& mapping : ams_mapping) {
+                if (mapping.contains("ams_id") && mapping.contains("slot_id")) {
+                    nlohmann::json slot_entry = {
+                        {"slot", slot_index},
+                        {"canvas_id", mapping["ams_id"].get<int>()},
+                        {"tray_id", mapping["slot_id"].get<int>()}
+                    };
+                    slot_map.push_back(slot_entry);
+                    slot_index++;
+                }
+            }
+
+            if (!slot_map.empty()) {
+                BOOST_LOG_TRIVIAL(info) << "CC2: Mapped " << slot_map.size() << " filament slots for Canvas/AMS";
+            }
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "CC2: Failed to parse ams_mapping: " << e.what();
+            // Continue with empty slot_map
+        }
+    }
     // Build start print command
     nlohmann::json print_params = {
         {"storage_media", "local"},
         {"filename", params.filename},
         {"config", {
             {"delay_video", false},
-            {"printer_check", false},
+            {"printer_check", params.task_bed_leveling},
             {"print_layout", "A"},
             {"bedlevel_force", false},
-            {"slot_map", nlohmann::json::array()}
+            {"slot_map", slot_map}
         }}
     };
 
@@ -1337,7 +1375,7 @@ int CC2PrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateS
 
         // Generate user-friendly remote filename
         std::string remote_filename = cc2_generate_upload_filename(params);
-        
+
         BOOST_LOG_TRIVIAL(info) << "CC2: Uploading file before print: " << local_path.string();
         if (!cc2_upload_file(local_path.string(), remote_filename, update_fn, cancel_fn)) {
             BOOST_LOG_TRIVIAL(error) << "CC2: File upload failed";
@@ -1404,7 +1442,7 @@ int CC2PrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn upda
 
         // Generate user-friendly remote filename
         std::string remote_filename = cc2_generate_upload_filename(params);
-        
+
         BOOST_LOG_TRIVIAL(info) << "CC2: Uploading file before print: " << local_path.string();
         if (!cc2_upload_file(local_path.string(), remote_filename, update_fn, cancel_fn)) {
             BOOST_LOG_TRIVIAL(error) << "CC2: File upload failed";
@@ -1490,7 +1528,7 @@ void CC2PrinterAgent::dispatch_local_connect(int state, const std::string& dev_i
 void CC2PrinterAgent::dispatch_message(const std::string& dev_id, const std::string& payload)
 {
     if (on_local_message_fn) {
-        BOOST_LOG_TRIVIAL(debug) << "CC2: Dispatching status message to UI for dev_id=" << dev_id;
+        BOOST_LOG_TRIVIAL(debug) << "CC2: Dispatching status message to UI for dev_id=" << dev_id << ", payload=" << payload;
         on_local_message_fn(dev_id, payload);
     } else {
         BOOST_LOG_TRIVIAL(warning) << "CC2: Cannot dispatch message - on_local_message_fn callback not set";
@@ -1863,29 +1901,6 @@ bool CC2PrinterAgent::fetch_filament_info(std::string dev_id)
     // Call the parser to populate DevFilaSystem
     DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem(), false);
     BOOST_LOG_TRIVIAL(info) << "CC2: Parsed " << tray_count << " Canvas trays into " << ams_count << " AMS units";
-
-    // Set printer_type so update_sync_status() can match it against the preset's printer type
-    obj->printer_type = m_device_info.machine_model;
-
-    // Set push counters so is_info_ready() returns true
-    if (obj->m_push_count == 0) {
-        obj->m_push_count = 1;
-    }
-    if (obj->m_full_msg_count == 0) {
-        obj->m_full_msg_count = 1;
-    }
-    obj->last_push_time = std::chrono::system_clock::now();
-
-    // Set storage state - CC2 printers have local storage
-    obj->GetStorage()->set_sdcard_state(DevStorage::HAS_SDCARD_NORMAL);
-
-    // Populate module_vers so is_info_ready() passes the version check
-    if (obj->module_vers.empty()) {
-        DevFirmwareVersionInfo ota_info;
-        ota_info.name = "ota";
-        ota_info.sw_ver = m_device_info.firmware_version.empty() ? "1.0.0" : m_device_info.firmware_version;
-        obj->module_vers.emplace("ota", ota_info);
-    }
 
     return true;
 }
